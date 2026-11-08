@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Monkey Alert</title>
+<title>बाँदर आयो</title>
 <meta name="theme-color" content="#d62828">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Monkey Alert">
+<meta name="apple-mobile-web-app-title" content="बाँदर आयो">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%92%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" id="touch-icon" href="">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -46,6 +46,14 @@
   .cancel { width:100%; border:0; background:none; padding:12px; font-size:15px; font-weight:600; }
   .pin { font-size:28px; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); text-align:center; }
   .leaflet-container { font-family:inherit; }
+  #login-bg { align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.65); }
+  #login-bg .sheet { border-radius:20px; max-width:380px; padding:22px; }
+  .field { width:100%; font-size:17px; padding:14px; border:2px solid #ddd; border-radius:12px; margin-bottom:10px; font-family:inherit; }
+  .field:focus { outline:none; border-color:var(--blue); }
+  .err { color:#b00020; font-size:14px; margin-bottom:10px; }
+  .brand { font-size:15px; color:#1F4D36; margin-right:4px; }
+  .brandbig { font-size:30px; font-weight:700; color:#1F4D36; margin-bottom:4px; }
+  .who { font-size:13px; color:#555; margin:0 0 10px; }
 </style>
 </head>
 <body>
@@ -53,11 +61,13 @@
 
 <div class="top">
   <div class="chips">
+    <strong class="brand">बाँदर आयो</strong>
     <label id="lbl-radius"></label>
+    <button class="chip" data-r="0.1">100 m</button>
+    <button class="chip" data-r="0.5">500 m</button>
     <button class="chip" data-r="1">1 km</button>
-    <button class="chip" data-r="2">2 km</button>
-    <button class="chip" data-r="5">5 km</button>
     <button class="chip" id="btn-lang">नेपाली</button>
+    <button class="chip hidden" id="btn-user"></button>
   </div>
   <div class="note hidden" id="note-demo"></div>
   <div class="note hidden" id="note-queue"></div>
@@ -77,6 +87,19 @@
 </div>
 
 <div class="toast hidden" id="toast"></div>
+
+<div class="backdrop hidden" id="login-bg">
+  <div class="sheet">
+    <div class="brandbig">🐒 बाँदर आयो</div>
+    <h2 id="login-title">🐒</h2>
+    <input class="field" id="in-name" type="text" autocomplete="username" autocapitalize="words">
+    <input class="field" id="in-pass" type="password" autocomplete="current-password">
+    <div class="err hidden" id="login-err"></div>
+    <button class="btn dark" id="btn-login-go" style="width:100%"></button>
+    <button class="cancel" id="btn-login-switch"></button>
+    <button class="cancel" id="btn-login-lang"></button>
+  </div>
+</div>
 
 <div class="backdrop hidden" id="sheet-bg">
   <div class="sheet">
@@ -115,27 +138,44 @@ const STR = {
     report:'🐒  Report monkeys', title:'How many monkeys?', atMe:'At my location', atCenter:'At map center',
     few:'1–3 monkeys', group:'A group (4–15)', troop:'Big troop (15+)', cancel:'Cancel',
     confirm:'Still here', gone:'They left', radius:'Alert radius',
-    alertTitle:'🐒 Monkeys nearby!', alertBody:km=>`Monkeys reported ${km} km from you. Protect your crops.`,
+    alertTitle:'🐒 Monkeys nearby!', alertBody:d=>`Monkeys reported ${d} from you. Protect your crops.`,
     ago:(v,u)=>u==='m'?`${v} min ago`:`${v} hr ago`, confirmedBy:n=>`${n} confirmed`,
     queued:n=>`${n} report(s) waiting for signal`, sent:'Report sent. Thank you!',
     offline:'No signal. Report saved and will send automatically.', noLoc:'Location unavailable. Use "At map center" or turn on GPS.',
     demo:'Demo mode: reports stay on this phone only', voted:'Thanks, vote saved.', already:'You already voted on this one.',
-    size:{few:'1–3 monkeys', group:'Group of monkeys', troop:'Big troop'}, lang:'नेपाली'
+    size:{few:'1–3 monkeys', group:'Group of monkeys', troop:'Big troop'}, lang:'नेपाली',
+    loginTitle:'Farmer login', createTitle:'Create account', nameLbl:'Your name', passLbl:'Password (6+ characters)',
+    loginBtn:'Log in', createBtn:'Create account', toCreate:'New here? Create an account', toLogin:'Have an account? Log in',
+    logout:'Log out', reportedBy:n=>`Reported by ${n}`,
+    errWrong:'Wrong name or password.', errTaken:'This name is already used. Add your village or surname.',
+    errShort:'Password needs 6 or more characters.', errName:'Please enter your name.', errNet:'No internet. Try again.',
+    errConfirm:'Account created, but the admin must turn off "Confirm email" in Supabase.', errGeneric:'Something went wrong. Try again.'
   },
   ne: {
     report:'🐒  बाँदर रिपोर्ट गर्नुहोस्', title:'कति वटा बाँदर?', atMe:'मेरो स्थानमा', atCenter:'नक्साको बीचमा',
     few:'१–३ बाँदर', group:'समूह (४–१५)', troop:'ठूलो हूल (१५+)', cancel:'रद्द गर्नुहोस्',
     confirm:'अझै यहीँ छन्', gone:'गए', radius:'सूचना दायरा',
-    alertTitle:'🐒 नजिकै बाँदर!', alertBody:km=>`तपाईंबाट ${km} किमी टाढा बाँदर देखियो। बाली जोगाउनुहोस्।`,
+    alertTitle:'🐒 नजिकै बाँदर!', alertBody:d=>`तपाईंबाट ${d} टाढा बाँदर देखियो। बाली जोगाउनुहोस्।`,
     ago:(v,u)=>u==='m'?`${v} मिनेट अघि`:`${v} घण्टा अघि`, confirmedBy:n=>`${n} जनाले पुष्टि गरे`,
     queued:n=>`${n} रिपोर्ट नेटवर्कको पर्खाइमा`, sent:'रिपोर्ट पठाइयो। धन्यवाद!',
     offline:'नेटवर्क छैन। रिपोर्ट सुरक्षित भयो, आफैं पठाइनेछ।', noLoc:'स्थान उपलब्ध छैन। "नक्साको बीचमा" प्रयोग गर्नुहोस् वा GPS खोल्नुहोस्।',
     demo:'डेमो मोड: रिपोर्ट यही फोनमा मात्र रहन्छ', voted:'धन्यवाद, भोट सुरक्षित भयो।', already:'तपाईंले पहिले नै भोट गरिसक्नुभयो।',
-    size:{few:'१–३ बाँदर', group:'बाँदरको समूह', troop:'ठूलो हूल'}, lang:'EN'
+    size:{few:'१–३ बाँदर', group:'बाँदरको समूह', troop:'ठूलो हूल'}, lang:'EN',
+    loginTitle:'किसान लगइन', createTitle:'खाता बनाउनुहोस्', nameLbl:'तपाईंको नाम', passLbl:'पासवर्ड (६+ अक्षर)',
+    loginBtn:'लगइन', createBtn:'खाता बनाउनुहोस्', toCreate:'नयाँ हुनुहुन्छ? खाता बनाउनुहोस्', toLogin:'खाता छ? लगइन गर्नुहोस्',
+    logout:'लगआउट', reportedBy:n=>`${n} ले रिपोर्ट गर्नुभयो`,
+    errWrong:'नाम वा पासवर्ड मिलेन।', errTaken:'यो नाम पहिले नै प्रयोगमा छ। गाउँ वा थर थप्नुहोस्।',
+    errShort:'पासवर्ड कम्तिमा ६ अक्षरको हुनुपर्छ।', errName:'कृपया आफ्नो नाम लेख्नुहोस्।', errNet:'इन्टरनेट छैन। फेरि प्रयास गर्नुहोस्।',
+    errConfirm:'खाता बन्यो, तर एडमिनले Supabase मा "Confirm email" बन्द गर्नुपर्छ।', errGeneric:'केही गडबड भयो। फेरि प्रयास गर्नुहोस्।'
   }
 };
 let lang = load('lang', 'en');
-let radiusKm = load('radius', 2);
+const RADII = [0.1, 0.5, 1];            // alert distances in km: 100 m, 500 m, 1 km
+let radiusKm = load('radius', 0.5);
+if (!RADII.includes(radiusKm)) radiusKm = 0.5;
+const fmtDist = km => km < 1
+  ? Math.max(10, Math.round(km * 1000 / 10) * 10) + (lang === 'ne' ? ' मिटर' : ' m')
+  : km.toFixed(1) + (lang === 'ne' ? ' किमी' : ' km');
 const T = () => STR[lang];
 
 /* ---------- ids ---------- */
@@ -143,11 +183,68 @@ let deviceId = load('device_id', null);
 if (!deviceId) { deviceId = 'd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); save('device_id', deviceId); }
 
 /* ---------- data layer (Supabase REST, or local demo mode) ---------- */
-async function rest(path, opts = {}) {
+/* ---------- login (Supabase Auth, name + password) ---------- */
+let session = load('session', null);   // { access_token, refresh_token, expires_at, user_id, name }
+let signupMode = false;
+const nowSec = () => Math.floor(Date.now() / 1000);
+
+// Farmers log in with a name, not an email. We turn the name into a private
+// look-alike email address so Supabase Auth can be used as is.
+async function emailFor(name) {
+  const norm = name.normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('monkey-alert:' + norm));
+  const hex = [...new Uint8Array(buf)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+  return 'u' + hex + '@example.com';
+}
+async function authCall(path, body) {
+  const r = await fetch(CONFIG.SUPABASE_URL + '/auth/v1/' + path, {
+    method: 'POST',
+    headers: { apikey: CONFIG.SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = new Error(j.msg || j.error_description || j.message || 'HTTP ' + r.status);
+    e.status = r.status; e.code = j.error_code || j.code || '';
+    throw e;
+  }
+  return j;
+}
+function setSession(j, fallbackName) {
+  const meta = (j.user && j.user.user_metadata) || {};
+  session = {
+    access_token: j.access_token, refresh_token: j.refresh_token,
+    expires_at: nowSec() + (j.expires_in || 3600),
+    user_id: j.user ? j.user.id : (session && session.user_id),
+    name: meta.display_name || fallbackName || (session && session.name) || ''
+  };
+  save('session', session);
+}
+function clearSession() { session = null; save('session', null); }
+async function refreshSession() {
+  if (!session) return false;
+  try {
+    setSession(await authCall('token?grant_type=refresh_token', { refresh_token: session.refresh_token }));
+    return true;
+  } catch (e) {
+    if (e.status >= 400 && e.status < 500) { clearSession(); return false; }  // login no longer valid
+    return true;                                                               // just offline: keep going
+  }
+}
+async function refreshIfNeeded() {
+  if (session && session.expires_at - nowSec() < 120) await refreshSession();
+}
+
+async function rest(path, opts = {}, retry = true) {
   const K = CONFIG.SUPABASE_KEY;
   const headers = { apikey: K, 'Content-Type': 'application/json', ...(opts.headers || {}) };
-  if (K.startsWith('eyJ')) headers.Authorization = 'Bearer ' + K;
+  const bearer = session ? session.access_token : (K.startsWith('eyJ') ? K : null);
+  if (bearer) headers.Authorization = 'Bearer ' + bearer;
   const r = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/' + path, { ...opts, headers });
+  if ((r.status === 401 || r.status === 403) && retry && session) {
+    if (await refreshSession()) return rest(path, opts, false);
+  }
+  if (r.status === 401) { if (!session) showLogin(); throw new Error('HTTP 401'); }
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const txt = await r.text();
   return txt ? JSON.parse(txt) : null;
@@ -172,7 +269,7 @@ async function createSighting(n) {
 }
 async function sendVote(id, kind) {
   if (REMOTE) {
-    await rest('rpc/vote_sighting', { method: 'POST', body: JSON.stringify({ p_sighting: id, p_device: deviceId, p_kind: kind }) });
+    await rest('rpc/vote_sighting', { method: 'POST', body: JSON.stringify({ p_sighting: id, p_kind: kind }) });
     return;
   }
   save('local_sightings', load('local_sightings', []).map(s => s.id === id
@@ -240,17 +337,28 @@ function paint() {
   $('w-me').textContent = s.atMe; $('w-center').textContent = s.atCenter;
   $('s-few').textContent = '🐒 ' + s.few; $('s-group').textContent = '🐒🐒 ' + s.group; $('s-troop').textContent = '🐒🐒🐒 ' + s.troop;
   $('btn-cancel').textContent = s.cancel;
+  $('login-title').textContent = signupMode ? s.createTitle : s.loginTitle;
+  $('in-name').placeholder = s.nameLbl; $('in-pass').placeholder = s.passLbl;
+  $('in-pass').autocomplete = signupMode ? 'new-password' : 'current-password';
+  $('btn-login-go').textContent = signupMode ? s.createBtn : s.loginBtn;
+  $('btn-login-switch').textContent = signupMode ? s.toLogin : s.toCreate;
+  $('btn-login-lang').textContent = s.lang;
+  $('btn-user').classList.toggle('hidden', !(REMOTE && session));
+  if (session) $('btn-user').textContent = '👤 ' + (session.name || '') + ' · ' + s.logout;
   $('btn-confirm').textContent = s.confirm; $('btn-gone').textContent = s.gone;
   $('note-demo').textContent = s.demo; $('note-demo').classList.toggle('hidden', REMOTE);
   const q = queueSize();
   $('note-queue').textContent = s.queued(q); $('note-queue').classList.toggle('hidden', q === 0);
-  document.querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', +b.dataset.r === radiusKm));
+  document.querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', parseFloat(b.dataset.r) === radiusKm));
   if (selected) fillCard();
 }
 function fillCard() {
   const s = T();
   $('card-title').textContent = '🐒 ' + s.size[selected.group_size];
-  $('card-sub').textContent = ageText(minsAgo(selected.created_at)) + (selected.confirms > 0 ? '  ·  ' + s.confirmedBy(selected.confirms) : '');
+  $('card-sub').textContent =
+    (selected.reporter_name ? s.reportedBy(selected.reporter_name) + '  ·  ' : '') +
+    ageText(minsAgo(selected.created_at)) +
+    (selected.confirms > 0 ? '  ·  ' + s.confirmedBy(selected.confirms) : '');
 }
 function select(s) {
   selected = s;
@@ -279,20 +387,24 @@ function beep() {
 function raiseAlert(km) {
   const s = T();
   const bar = $('alertbar');
-  bar.textContent = s.alertTitle + '  ' + s.alertBody(km.toFixed(1));
+  const d = fmtDist(km);
+  bar.textContent = s.alertTitle + '  ' + s.alertBody(d);
   bar.classList.remove('hidden');
   setTimeout(() => bar.classList.add('hidden'), 20000);
   try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch {}
   beep();
   try {
-    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification(s.alertTitle, { body: s.alertBody(km.toFixed(1)) });
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification(s.alertTitle, { body: s.alertBody(d) });
   } catch {}
 }
 $('alertbar').addEventListener('click', () => $('alertbar').classList.add('hidden'));
 
 /* ---------- refresh loop ---------- */
 async function refresh() {
+  if (REMOTE && !session) { showLogin(); return; }
   try {
+    await refreshIfNeeded();
+    if (REMOTE && !session) { showLogin(); return; }
     await flushQueue();
     const list = await fetchSightings();
     sightings = list;
@@ -315,9 +427,63 @@ async function refresh() {
   paint();
 }
 
+/* ---------- login screen ---------- */
+function showLogin() {
+  $('login-bg').classList.remove('hidden');
+  paint();
+}
+function loginError(msg) {
+  const el = $('login-err'); el.textContent = msg; el.classList.toggle('hidden', !msg);
+}
+async function doAuth() {
+  const s = T();
+  const name = $('in-name').value.trim(), pass = $('in-pass').value;
+  loginError('');
+  if (!name) { loginError(s.errName); return; }
+  if (pass.length < 6) { loginError(s.errShort); return; }
+  const go = $('btn-login-go'); go.disabled = true;
+  try {
+    const email = await emailFor(name);
+    let j;
+    if (signupMode) {
+      j = await authCall('signup', { email, password: pass, data: { display_name: name } });
+      if (!j.access_token) { loginError(s.errConfirm); return; }
+    } else {
+      j = await authCall('token?grant_type=password', { email, password: pass });
+    }
+    setSession(j, name);
+    if (!session.name) { session.name = name; save('session', session); }
+    $('in-pass').value = '';
+    $('login-bg').classList.add('hidden');
+    seen = null;
+    paint();
+    refresh();
+  } catch (e) {
+    if (e.status === undefined) loginError(s.errNet);
+    else if (e.code === 'user_already_exists' || /already/i.test(e.message)) loginError(s.errTaken);
+    else if (e.code === 'weak_password') loginError(s.errShort);
+    else if (e.status === 400 || e.status === 401) loginError(s.errWrong);
+    else loginError(s.errGeneric);
+  } finally {
+    go.disabled = false;
+  }
+}
+function logout() {
+  clearSession();
+  sightings = []; seen = null; selected = null;
+  drawSightings(); select(null);
+  showLogin();
+}
+$('btn-login-go').onclick = doAuth;
+$('in-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
+$('btn-login-switch').onclick = () => { signupMode = !signupMode; loginError(''); paint(); };
+$('btn-login-lang').onclick = () => { lang = lang === 'en' ? 'ne' : 'en'; save('lang', lang); paint(); };
+$('btn-user').onclick = logout;
+
 /* ---------- reporting ---------- */
 let where = 'me';
 function openSheet() {
+  if (REMOTE && !session) { showLogin(); return; }
   where = me ? 'me' : 'center';
   setWhere(where);
   $('sheet-bg').classList.remove('hidden');
@@ -355,7 +521,7 @@ document.querySelectorAll('.size').forEach(b => b.onclick = () => submitReport(b
 $('btn-confirm').onclick = () => castVote('confirm');
 $('btn-gone').onclick = () => castVote('gone');
 $('btn-lang').onclick = () => { lang = lang === 'en' ? 'ne' : 'en'; save('lang', lang); paint(); };
-document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { radiusKm = +b.dataset.r; save('radius', radiusKm); drawMe(); paint(); });
+document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { radiusKm = parseFloat(b.dataset.r); save('radius', radiusKm); drawMe(); paint(); });
 $('btn-locate').onclick = () => { if (me) map.setView([me.lat, me.lng], Math.max(map.getZoom(), 14)); else startGps(true); };
 window.addEventListener('online', refresh);
 
@@ -385,7 +551,13 @@ try {
 /* ---------- go ---------- */
 paint();
 startGps(false);
-refresh();
+(async () => {
+  if (REMOTE) {
+    await refreshIfNeeded();
+    if (!session) { showLogin(); return; }
+  }
+  refresh();
+})();
 setInterval(refresh, POLL_MS);
 </script>
 </body>
