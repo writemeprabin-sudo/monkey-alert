@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>बाँदर आयो</title>
+<title>Monkey Alert</title>
 <meta name="theme-color" content="#d62828">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="बाँदर आयो">
+<meta name="apple-mobile-web-app-title" content="Monkey Alert">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%92%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" id="touch-icon" href="">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -51,8 +51,6 @@
   .field { width:100%; font-size:17px; padding:14px; border:2px solid #ddd; border-radius:12px; margin-bottom:10px; font-family:inherit; }
   .field:focus { outline:none; border-color:var(--blue); }
   .err { color:#b00020; font-size:14px; margin-bottom:10px; }
-  .brand { font-size:15px; color:#1F4D36; margin-right:4px; }
-  .brandbig { font-size:30px; font-weight:700; color:#1F4D36; margin-bottom:4px; }
   .who { font-size:13px; color:#555; margin:0 0 10px; }
 </style>
 </head>
@@ -61,7 +59,6 @@
 
 <div class="top">
   <div class="chips">
-    <strong class="brand">बाँदर आयो</strong>
     <label id="lbl-radius"></label>
     <button class="chip" data-r="0.1">100 m</button>
     <button class="chip" data-r="0.5">500 m</button>
@@ -90,7 +87,6 @@
 
 <div class="backdrop hidden" id="login-bg">
   <div class="sheet">
-    <div class="brandbig">🐒 बाँदर आयो</div>
     <h2 id="login-title">🐒</h2>
     <input class="field" id="in-name" type="text" autocomplete="username" autocapitalize="words">
     <input class="field" id="in-pass" type="password" autocomplete="current-password">
@@ -144,7 +140,7 @@ const STR = {
     offline:'No signal. Report saved and will send automatically.', noLoc:'Location unavailable. Use "At map center" or turn on GPS.',
     demo:'Demo mode: reports stay on this phone only', voted:'Thanks, vote saved.', already:'You already voted on this one.',
     size:{few:'1–3 monkeys', group:'Group of monkeys', troop:'Big troop'}, lang:'नेपाली',
-    loginTitle:'Farmer login', createTitle:'Create account', nameLbl:'Your name', passLbl:'Password (6+ characters)',
+    loginTitle:'🐒 Farmer login', createTitle:'🐒 Create account', nameLbl:'Your name', passLbl:'Password (6+ characters)',
     loginBtn:'Log in', createBtn:'Create account', toCreate:'New here? Create an account', toLogin:'Have an account? Log in',
     logout:'Log out', reportedBy:n=>`Reported by ${n}`,
     errWrong:'Wrong name or password.', errTaken:'This name is already used. Add your village or surname.',
@@ -161,7 +157,7 @@ const STR = {
     offline:'नेटवर्क छैन। रिपोर्ट सुरक्षित भयो, आफैं पठाइनेछ।', noLoc:'स्थान उपलब्ध छैन। "नक्साको बीचमा" प्रयोग गर्नुहोस् वा GPS खोल्नुहोस्।',
     demo:'डेमो मोड: रिपोर्ट यही फोनमा मात्र रहन्छ', voted:'धन्यवाद, भोट सुरक्षित भयो।', already:'तपाईंले पहिले नै भोट गरिसक्नुभयो।',
     size:{few:'१–३ बाँदर', group:'बाँदरको समूह', troop:'ठूलो हूल'}, lang:'EN',
-    loginTitle:'किसान लगइन', createTitle:'खाता बनाउनुहोस्', nameLbl:'तपाईंको नाम', passLbl:'पासवर्ड (६+ अक्षर)',
+    loginTitle:'🐒 किसान लगइन', createTitle:'🐒 खाता बनाउनुहोस्', nameLbl:'तपाईंको नाम', passLbl:'पासवर्ड (६+ अक्षर)',
     loginBtn:'लगइन', createBtn:'खाता बनाउनुहोस्', toCreate:'नयाँ हुनुहुन्छ? खाता बनाउनुहोस्', toLogin:'खाता छ? लगइन गर्नुहोस्',
     logout:'लगआउट', reportedBy:n=>`${n} ले रिपोर्ट गर्नुभयो`,
     errWrong:'नाम वा पासवर्ड मिलेन।', errTaken:'यो नाम पहिले नै प्रयोगमा छ। गाउँ वा थर थप्नुहोस्।',
